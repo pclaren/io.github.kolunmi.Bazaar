@@ -57,7 +57,7 @@ modules:
       - -Dhardcoded_blocklist_path=/run/host/etc/bazaar/blocklist.txt
     sources:
       - type: git
-        url: https://github.com/MrMEEE/bazaar.git
+        url: https://github.com/pclaren/bazaar.git
         branch: flathub-customization
 
     modules:
