@@ -8,6 +8,8 @@ finish-args:
   - --share=ipc
   - --socket=fallback-x11
   - --socket=wayland
+  # Needed for RHEL9 and RHEL10
+  - --socket=session-bus
   - --device=dri
   # We need directory access to system flatpak installation
   - --filesystem=/var/lib/flatpak
@@ -21,10 +23,12 @@ finish-args:
   - --filesystem=/var/tmp
   # We need to be able to clean up application data
   - --filesystem=~/.var/app
-  # Read-only access to the host's admin-controlled Bazaar configuration; this is the
-  # only way the main/content config and blocklist are sourced, and users cannot
-  # override it from within the app (no env var or CLI flag exists for these paths)
-  - --filesystem=/etc/bazaar:ro
+  # Map the host's /etc read-only into the sandbox's /run/host/etc
+  # Read-only access to the host's admin-controlled Bazaar configuration;
+  # The user can always override using "flatpak override --user # --nofilesystem=host-etc io.github.kolunmi.Bazaar
+  # Flatpak does not allow mapping the host's "/etc/xxx" into the sandbox's "/etc/xxx"
+  # Ref: # https://docs.flatpak.org/en/latest/sandbox-permissions.html?utm_source=chatgpt.com#reserved-paths
+  - --filesystem=host-etc:ro
   # Not having this makes it so libflatpak misbehaves and can't detect all flatpaks installed by users properly
   # "(x) flatpaks need to be updated" when they in fact don't
   - --system-talk-name=org.freedesktop.Accounts
@@ -46,12 +50,11 @@ modules:
     buildsystem: meson
     config-opts:
       - -Dsandboxed_libflatpak=true
-      # Hardcoded at build time so the host's /etc/bazaar config is always used and
-      # can't be overridden at runtime; paired with the --filesystem=/etc/bazaar:ro
-      # permission above (bind-mounted directly, not through /run/host)
-      - -Dhardcoded_main_config_path=/etc/bazaar/bazaar.yaml
-      - -Dhardcoded_content_config_path=/etc/bazaar/config.yaml
-      - -Dhardcoded_blocklist_path=/etc/bazaar/blocklist.txt
+      # Hardcoded at build time so the host's /etc/bazaar configuration
+      # is accessed inside the sandbox as /run/host/etc/bazaar.
+      - -Dhardcoded_main_config_path=/run/host/etc/bazaar/bazaar.yaml
+      - -Dhardcoded_content_config_path=/run/host/etc/bazaar/config.yaml
+      - -Dhardcoded_blocklist_path=/run/host/etc/bazaar/blocklist.txt
     sources:
       - type: git
         url: https://github.com/MrMEEE/bazaar.git
